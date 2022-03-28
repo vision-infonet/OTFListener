@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29709.97
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTFListener", "OTFListener\OTFListener.csproj", "{0CB5B416-BB99-419D-9219-551CF62F03F6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OTFService", "OTFService\OTFService.csproj", "{15351489-A664-49EC-A52F-EDB85CC4F944}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "SetupOTFListener", "SetupOTFListener\SetupOTFListener.vdproj", "{3C4A1A05-8F56-4D43-89E3-02FF5C5199B4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0CB5B416-BB99-419D-9219-551CF62F03F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CB5B416-BB99-419D-9219-551CF62F03F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CB5B416-BB99-419D-9219-551CF62F03F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CB5B416-BB99-419D-9219-551CF62F03F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15351489-A664-49EC-A52F-EDB85CC4F944}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15351489-A664-49EC-A52F-EDB85CC4F944}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15351489-A664-49EC-A52F-EDB85CC4F944}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15351489-A664-49EC-A52F-EDB85CC4F944}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C4A1A05-8F56-4D43-89E3-02FF5C5199B4}.Debug|Any CPU.ActiveCfg = Debug
+		{3C4A1A05-8F56-4D43-89E3-02FF5C5199B4}.Release|Any CPU.ActiveCfg = Release
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7A1D818C-645D-4590-8B3F-B6AA69B6D8E4}
+	EndGlobalSection
+EndGlobal
