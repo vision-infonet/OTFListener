@@ -23,7 +23,8 @@ namespace OTFListener
         public static string MY_GUID = string.Empty;
         public static string _log = "MobilePaymentProcessor.log";
         public static X509Certificate2 cert2 = null;
-        public static string infonet_certificate = System.Configuration.ConfigurationManager.AppSettings["Path"] + "infonet-tech.com.pfx";
+        public static string infonet_certificate = System.Configuration.ConfigurationManager.AppSettings["Path"]
+                                                 + System.Configuration.ConfigurationManager.AppSettings["CertFileName"];
         private TcpClient tcpClient;
         private ManualResetEvent OPTResponseManualResetEvent = new ManualResetEvent(false);
         private byte[] receive_buffer = new byte[2048];
@@ -41,6 +42,7 @@ namespace OTFListener
             ThreadPool.QueueUserWorkItem(new WaitCallback(ConnectToOPT));
             Log.LogEnter("*******************MobilePaymentProcessor is started********************\r\n", string.Empty, string.Empty, _log);
         }
+
         public void InitialHttpsListener()
         {
             if (!HttpListener.IsSupported)
@@ -70,7 +72,6 @@ namespace OTFListener
                 _mobilePaymentProcessor = new MobilePaymentProcessor();
             return _mobilePaymentProcessor;
         }
-
 
         public void ReceiveDataThread_HTTP(object obj)
         {
@@ -105,8 +106,7 @@ namespace OTFListener
                     {
                         _xelement = XElement.Parse(_receivedmsg); 
                         if(!runningasservice)
-                            Console.WriteLine(DateTime.Now.ToString() + "\r\n" + _receivedmsg); 
-                        
+                            Console.WriteLine(DateTime.Now.ToString() + " Received HTTPS request" + "\r\n" + _receivedmsg + "\r\n"); 
                     }
                     catch (Exception ex)
                     {
@@ -119,14 +119,10 @@ namespace OTFListener
             }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
         private void TransferMobileRequest(XElement element, HttpListenerResponse resp)
         {
             try
             {
-
                 if (tcpClient.Connected)
                 {
                     try
@@ -135,12 +131,20 @@ namespace OTFListener
                         byte[] _tempbytes = System.Text.ASCIIEncoding.ASCII.GetBytes(element.ToString());
                         _stream.Write(_tempbytes, 0, _tempbytes.Length);
                         received_data_length = _stream.Read(receive_buffer, 0, receive_buffer.Length);
+                        if (!runningasservice)
+                            Console.WriteLine( $"{DateTime.Now.ToString()} Receive response from OPT:\r\n" +
+                            $"{System.Text.ASCIIEncoding.ASCII.GetString(receive_buffer, 0, received_data_length)}\r\n");
+                        Log.LogEnter($"Receive response from OPT:\r\n" +
+                            $"{System.Text.ASCIIEncoding.ASCII.GetString(receive_buffer, 0, received_data_length)}", 
+                            "", string.Empty, _log);
                         resp.OutputStream.Write(receive_buffer, 0, received_data_length);
                     }
                     catch (Exception ex)
                     {
-                        if (ex.Message.Contains("An existing connection was forcibly closed by the remote host."))
-                            tcpClient.Close();
+                        Log.LogEnter($"Error in TransferMobileRequest: {ex.ToString()}", "TcpClient will be closed and reconnect to OPT", string.Empty, _log);
+                        tcpClient.Close();
+                        Thread.Sleep(5000);
+                        TransferMobileRequest(element, resp);//resend the same request in case that OPT reloaded.
                     }
                 }
             }
@@ -157,7 +161,7 @@ namespace OTFListener
                 if (tcpClient == null || !tcpClient.Connected)
                 {
                     tcpClient = new TcpClient(AddressFamily.InterNetwork);
-                    tcpClient.BeginConnect(IPAddress.Parse("192.168.85.117"), OPT_Listener_Port, null, null);
+                    tcpClient.BeginConnect(IPAddress.Parse(LOCAL_IP), OPT_Listener_Port, null, null);
                 }
                 Thread.Sleep(5000);
             }
