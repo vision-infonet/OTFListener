@@ -97,25 +97,32 @@ namespace OTFListener
             HttpListenerResponse response = context.Response;
             string _receivedmsg = string.Empty;
             XElement _xelement = null;
-            using (System.IO.Stream body = request.InputStream)
+            try
             {
-                using (System.IO.StreamReader reader = new System.IO.StreamReader(body, request.ContentEncoding))
+                using (System.IO.Stream body = request.InputStream)
                 {
-                    _receivedmsg = reader.ReadToEnd();
-                    try 
+                    using (System.IO.StreamReader reader = new System.IO.StreamReader(body, request.ContentEncoding))
                     {
-                        _xelement = XElement.Parse(_receivedmsg); 
-                        if(!runningasservice)
-                            Console.WriteLine(DateTime.Now.ToString() + " Received HTTPS request" + "\r\n" + _receivedmsg + "\r\n"); 
+                        _receivedmsg = reader.ReadToEnd();
+                        try
+                        {
+                            _xelement = XElement.Parse(_receivedmsg);
+                            if (!runningasservice)
+                                Console.WriteLine(DateTime.Now.ToString() + " Received HTTPS request" + "\r\n" + _receivedmsg + "\r\n");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.LogEnter($"Received HTTP * *********invalid xml * *********\r\n{_receivedmsg}\r\n{ex.ToString()}", "Error", string.Empty, _log);
+                            return;
+                        }
+                        Log.LogEnter("Received HTTP Reqest xml \r\n" + _xelement.ToString() + "\r\n", string.Empty, string.Empty, _log);
+                        TransferMobileRequest(_xelement, response);
                     }
-                    catch (Exception ex)
-                    {
-                        Log.LogEnter($"Received HTTP * *********invalid xml * *********\r\n{_receivedmsg}\r\n{ex.ToString()}", "Error", string.Empty, _log);
-                        return;
-                    }
-                    Log.LogEnter("Received HTTP Reqest xml \r\n" + _xelement.ToString() + "\r\n", string.Empty, string.Empty, _log);
-                    TransferMobileRequest(_xelement, response);
                 }
+            }
+            catch (Exception ex)
+            {
+                Log.LogEnter($"Error in HandleReceivedDataThread: {ex.ToString()}", "", string.Empty, _log);
             }
         }
 
@@ -138,6 +145,8 @@ namespace OTFListener
                             $"{System.Text.ASCIIEncoding.ASCII.GetString(receive_buffer, 0, received_data_length)}", 
                             "", string.Empty, _log);
                         resp.OutputStream.Write(receive_buffer, 0, received_data_length);
+                        resp.OutputStream.Close();
+                        resp.Close();
                     }
                     catch (Exception ex)
                     {
