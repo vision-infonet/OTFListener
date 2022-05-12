@@ -21,7 +21,7 @@ namespace OTFListener
         public int OTF_Listener_Port=9661, OPT_Listener_Port=9660;
         public static MobilePaymentProcessor _mobilePaymentProcessor = null;
         public static string MY_GUID = string.Empty;
-        public static string _log = "MobilePaymentProcessor.log";
+        public static string _log = "OTFMobilePaymentProcessor.log";
         public static X509Certificate2 cert2 = null;
         public static string certificate = System.Configuration.ConfigurationManager.AppSettings["Path"]
                                                  + System.Configuration.ConfigurationManager.AppSettings["CertFileName"];
@@ -36,13 +36,15 @@ namespace OTFListener
         {
             OTF_Listener_Port = int.Parse(System.Configuration.ConfigurationManager.AppSettings["OTF_Listener_Port"]);
             OPT_Listener_Port = int.Parse(System.Configuration.ConfigurationManager.AppSettings["OPT_Listener_Port"]);
-            LOCAL_URLACL = System.Configuration.ConfigurationManager.AppSettings["LocalUrlAcl"];
-            LOCAL_IP = GetLocalIPAddress();
-            SetupSsl_Infonet(OTF_Listener_Port, ref cert2);
+            //LOCAL_URLACL = System.Configuration.ConfigurationManager.AppSettings["LocalUrlAcl"];
+            LOCAL_URLACL = LOCAL_IP = GetLocalIPAddress();
+            Log.LogEnter("*******************MobilePaymentProcessor is started********************\r\n", string.Empty, string.Empty, _log);
+            SetupSsl_Infonet(OTF_Listener_Port);
+            //SetupSsl_Infonet(OTF_Listener_Port, ref cert2);
             //SetupSsl(LocalPort, ref cert2);
             InitialHttpsListener();
             ThreadPool.QueueUserWorkItem(new WaitCallback(ConnectToOPT));
-            Log.LogEnter("*******************MobilePaymentProcessor is started********************\r\n", string.Empty, string.Empty, _log);
+            
         }
 
         public void InitialHttpsListener()
@@ -58,7 +60,8 @@ namespace OTFListener
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11;
 
                 _https_listener = new HttpListener();
-                _https_listener.Prefixes.Add("HTTPS://" + LOCAL_IP + ":" + OTF_Listener_Port + "/");
+                _https_listener.Prefixes.Add(System.Configuration.ConfigurationManager.AppSettings["SecurityLevel"]
+                                                            + "://" + LOCAL_IP + ":" + OTF_Listener_Port + "/");
                 _https_listener.Start();
                 Thread receiving_thread = new Thread(this.ReceiveDataThread_HTTP);
                 receiving_thread.Start();
@@ -181,13 +184,13 @@ namespace OTFListener
         
         private bool ValidationCallBack(object sender, X509Certificate cert, X509Chain chain, System.Net.Security.SslPolicyErrors error)
         {
-            //if (error == System.Net.Security.SslPolicyErrors.None)
-            //    return true;
-            //else
-            //{
-            //    return false;
-            //}
-            return true;
+            if (error == System.Net.Security.SslPolicyErrors.None)
+                return true;
+            else
+            {
+                return false;
+            }
+            //return true;
         }
 
         public static string GetLocalIPAddress()
@@ -216,17 +219,30 @@ namespace OTFListener
             return _result;
         }
 
-        public void SetupSsl_Infonet(int port, ref X509Certificate2 cert2)
+        //public void SetupSsl_Infonet(int port, ref X509Certificate2 cert2)
+        public void SetupSsl_Infonet(int port)
         {
             try
             {
-                cert2 = new X509Certificate2(certificate, certificate_password);
-                ExecuteNetShCmd(" netsh http delete urlacl url=https://" + LOCAL_URLACL + ":"+ port +"/");
-                Log.LogEnter(" netsh http delete urlacl url=https://" + LOCAL_URLACL + ":" + port + "/", "Netsh Command", string.Empty, _log);
-                ExecuteNetShCmd(" netsh http add urlacl url=https://" + LOCAL_URLACL + ":" + port + "/ user=users");
-                Log.LogEnter(" netsh http add urlacl url=https://" + LOCAL_URLACL + ":" + port + "/ user=users", "Netsh Command", string.Empty, _log);
-                ExecuteNetShCmd(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "}");
-                Log.LogEnter(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "}", "Netsh Command", string.Empty, _log);
+                if (!string.IsNullOrEmpty(certificate_password))
+                    cert2 = new X509Certificate2(certificate, certificate_password);
+                else
+                    cert2 = new X509Certificate2(certificate);
+                ExecuteNetShCmd(" netsh http delete urlacl url="+ System.Configuration.ConfigurationManager.AppSettings["SecurityLevel"] + "://" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":"+ port +"/");
+                Log.LogEnter(" netsh http delete urlacl url=" + System.Configuration.ConfigurationManager.AppSettings["SecurityLevel"] + "://" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port + "/", "Netsh Command", string.Empty, _log);
+                Thread.Sleep(500);
+                ExecuteNetShCmd(" netsh http add urlacl url=" + System.Configuration.ConfigurationManager.AppSettings["SecurityLevel"] + "://" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port + "/ user=users");
+                Log.LogEnter(" netsh http add urlacl url=" + System.Configuration.ConfigurationManager.AppSettings["SecurityLevel"] + "://" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port + "/ user=users", "Netsh Command", string.Empty, _log);
+                Thread.Sleep(500);
+                ExecuteNetShCmd(" http delete sslcert ipport=" + LOCAL_URLACL + ":" + port);
+                Log.LogEnter(" http delete sslcert ipport=" + LOCAL_URLACL + ":" + port, "Netsh Command", string.Empty, _log);
+                Thread.Sleep(500);
+                ExecuteNetShCmd(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "} certstorename=Root");
+                Log.LogEnter(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "} certstorename=Root", "Netsh Command", string.Empty, _log);
+                //ExecuteNetShCmd(" http delete sslcert hostnameport=" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port);
+                //Log.LogEnter(   " http delete sslcert hostnameport=" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port, "Netsh Command", string.Empty, _log);
+                //ExecuteNetShCmd(" http add sslcert hostnameport=" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "}" + " certstorename=Root");
+                //Log.LogEnter(   " http add sslcert hostnameport=" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "}" + " certstorename=Root", "Netsh Command", string.Empty, _log);
             }
             catch (Exception e)
             {
