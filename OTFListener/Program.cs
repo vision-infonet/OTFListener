@@ -13,7 +13,10 @@ namespace OTFListener
         public static void Main(string[] args)
         {
             if (null != args && args.Length > 0 && args[0] == "winservice")
+            {
                 MobilePaymentProcessor.runningasservice = true;
+                System.Threading.Thread.Sleep(30000);//2022-Aug-30 Vision
+            }
             MobilePaymentProcessor.GetInstance();
         }
     }
