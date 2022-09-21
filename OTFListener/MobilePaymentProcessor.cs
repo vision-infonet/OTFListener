@@ -65,6 +65,7 @@ namespace OTFListener
                 _https_listener.Start();
                 Thread receiving_thread = new Thread(this.ReceiveDataThread_HTTP);
                 receiving_thread.Start();
+                Log.LogEnter($"Http listener started on : {LOCAL_IP}:{OTF_Listener_Port}", "Debug", string.Empty, _log);
             }
             catch (Exception ex)
             {
