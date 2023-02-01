@@ -31,6 +31,7 @@ namespace OTFListener
         private byte[] receive_buffer = new byte[2048];
         private int received_data_length = 0;
         internal static bool runningasservice = false;
+        Thread receiving_thread = null;//2023-Feb-01 Vision
 
         public MobilePaymentProcessor()
         {
@@ -62,8 +63,9 @@ namespace OTFListener
                 _https_listener = new HttpListener();
                 _https_listener.Prefixes.Add(System.Configuration.ConfigurationManager.AppSettings["SecurityLevel"]
                                                             + "://" + LOCAL_IP + ":" + OTF_Listener_Port + "/");
+                _https_listener.IgnoreWriteExceptions = true;//2023-Feb-01 Vision
                 _https_listener.Start();
-                Thread receiving_thread = new Thread(this.ReceiveDataThread_HTTP);
+                receiving_thread = new Thread(this.ReceiveDataThread_HTTP);
                 receiving_thread.Start();
                 Log.LogEnter($"Http listener started on : {LOCAL_IP}:{OTF_Listener_Port}", "Debug", string.Empty, _log);
             }
@@ -158,6 +160,13 @@ namespace OTFListener
                     {
                         Log.LogEnter($"Error in TransferMobileRequest: {ex.ToString()}", "TcpClient will be closed and reconnect to OPT", string.Empty, _log);
                         tcpClient.Close();
+                        //2023-Feb-01 Vision added begin
+                        _https_listener.Stop();
+                        _https_listener.Abort();
+                        if (this.receiving_thread != null)
+                            this.receiving_thread.Abort();
+                        this.InitialHttpsListener();
+                        //2023-Feb-01 Vision added end
                         Thread.Sleep(5000);
                         TransferMobileRequest(element, resp);//resend the same request in case that OPT reloaded.
                     }
