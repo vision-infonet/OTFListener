@@ -168,7 +168,7 @@ namespace OTFListener
                         this.InitialHttpsListener();
                         //2023-Feb-01 Vision added end
                         Thread.Sleep(5000);
-                        TransferMobileRequest(element, resp);//resend the same request in case that OPT reloaded.
+                        //TransferMobileRequest(element, resp);//resend the same request in case that OPT reloaded.//2024-Mar-27 Vision commented out: resending /re-response confused OTF server.
                     }
                 }
             }
