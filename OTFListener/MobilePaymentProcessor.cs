@@ -23,8 +23,9 @@ namespace OTFListener
         public static string MY_GUID = string.Empty;
         public static string _log = "OTFMobilePaymentProcessor.log";
         public static X509Certificate2 cert2 = null;
-        public static string certificate = System.Configuration.ConfigurationManager.AppSettings["Path"]
-                                                 + System.Configuration.ConfigurationManager.AppSettings["CertFileName"];
+        //public static string certificate = System.Configuration.ConfigurationManager.AppSettings["Path"]
+        //                                         + System.Configuration.ConfigurationManager.AppSettings["CertFileName"];
+        public static string certificate =  System.Configuration.ConfigurationManager.AppSettings["CertFileName"];//2024-Oct-15 Vision: use that app config to include configurable path
         public static string certificate_password = System.Configuration.ConfigurationManager.AppSettings["CertFilePassword"];
         private TcpClient tcpClient;
         private ManualResetEvent OPTResponseManualResetEvent = new ManualResetEvent(false);
