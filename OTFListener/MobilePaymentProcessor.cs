@@ -33,9 +33,19 @@ namespace OTFListener
         private int received_data_length = 0;
         internal static bool runningasservice = false;
         Thread receiving_thread = null;//2023-Feb-01 Vision
+        private static string CERT_STORE_NAME = "Root";
 
         public MobilePaymentProcessor()
         {
+            System.Configuration.Configuration config = System.Configuration.ConfigurationManager.OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.None);
+            if (!System.Configuration.ConfigurationManager.AppSettings.AllKeys.Contains("certstorename"))
+            {
+                config.AppSettings.Settings.Add("certstorename", "");
+                config.Save();
+                System.Configuration.ConfigurationManager.RefreshSection("appSettings");
+            }
+            CERT_STORE_NAME = System.Configuration.ConfigurationManager.AppSettings["certstorename"].ToString();
+
             OTF_Listener_Port = int.Parse(System.Configuration.ConfigurationManager.AppSettings["OTF_Listener_Port"]);
             OPT_Listener_Port = int.Parse(System.Configuration.ConfigurationManager.AppSettings["OPT_Listener_Port"]);
             //LOCAL_URLACL = System.Configuration.ConfigurationManager.AppSettings["LocalUrlAcl"];
@@ -248,8 +258,19 @@ namespace OTFListener
                 ExecuteNetShCmd(" http delete sslcert ipport=" + LOCAL_URLACL + ":" + port);
                 Log.LogEnter(" http delete sslcert ipport=" + LOCAL_URLACL + ":" + port, "Netsh Command", string.Empty, _log);
                 Thread.Sleep(500);
-                ExecuteNetShCmd(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "} certstorename=Root");
-                Log.LogEnter(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "} certstorename=Root", "Netsh Command", string.Empty, _log);
+                ExecuteNetShCmd(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "}"
+                    + ((string.IsNullOrEmpty(CERT_STORE_NAME)) ? string.Empty : " certstorename=" + CERT_STORE_NAME));
+                //ExecuteNetShCmd(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "}"
+                //    +  " certstorename=Root");
+
+                Log.LogEnter(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "}"
+                    + ((string.IsNullOrEmpty(CERT_STORE_NAME)) ? string.Empty : " certstorename=" + CERT_STORE_NAME),
+                    "Netsh Command", string.Empty, _log);
+
+                //Log.LogEnter(" http add sslcert ipport=" + LOCAL_URLACL + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "}"
+                //    + " certstorename=Root",
+                //    "Netsh Command", string.Empty, _log);
+
                 //ExecuteNetShCmd(" http delete sslcert hostnameport=" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port);
                 //Log.LogEnter(   " http delete sslcert hostnameport=" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port, "Netsh Command", string.Empty, _log);
                 //ExecuteNetShCmd(" http add sslcert hostnameport=" + LOCAL_URLACL.Replace("_", Dns.GetHostName()) + ":" + port + " certhash=" + cert2.GetCertHashString() + " appid={" + GetGUID() + "}" + " certstorename=Root");

@@ -28,7 +28,11 @@ namespace OTFService
         }
         protected override void OnStop()
         {
-            OTFListener.Log.LogEnter("OTFService closed", " ", null, OTFServiceStartCloseLog);
+            OTFListener.Log.LogEnter("OTFService closed OnStop", " ", null, OTFServiceStartCloseLog);
+        }
+        protected override void OnShutdown()//2024-Oct-18 Vision
+        {
+            OTFListener.Log.LogEnter("OTFService closed OnShutdown", " ", null, OTFServiceStartCloseLog);
         }
     }
 }
