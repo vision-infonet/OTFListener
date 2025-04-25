@@ -46,6 +46,13 @@ namespace OTFListener
             }
             CERT_STORE_NAME = System.Configuration.ConfigurationManager.AppSettings["certstorename"].ToString();
 
+            //2024-Oct-28 Vision addded begin
+            if (!System.Text.RegularExpressions.Regex.IsMatch(certificate, "^[a-zA-Z]\\:([a]|[^a]){1,1000}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                certificate = AppDomain.CurrentDomain.BaseDirectory + certificate;
+            }
+            //2024-Oct-28 Vision addded end
+
             OTF_Listener_Port = int.Parse(System.Configuration.ConfigurationManager.AppSettings["OTF_Listener_Port"]);
             OPT_Listener_Port = int.Parse(System.Configuration.ConfigurationManager.AppSettings["OPT_Listener_Port"]);
             //LOCAL_URLACL = System.Configuration.ConfigurationManager.AppSettings["LocalUrlAcl"];
