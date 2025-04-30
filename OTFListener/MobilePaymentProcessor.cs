@@ -34,6 +34,7 @@ namespace OTFListener
         internal static bool runningasservice = false;
         Thread receiving_thread = null;//2023-Feb-01 Vision
         private static string CERT_STORE_NAME = "Root";
+        private IPAddress MOBILE_SERVER_IP = null;//2025-Apr-25 Vision added 
 
         public MobilePaymentProcessor()
         {
@@ -45,6 +46,33 @@ namespace OTFListener
                 System.Configuration.ConfigurationManager.RefreshSection("appSettings");
             }
             CERT_STORE_NAME = System.Configuration.ConfigurationManager.AppSettings["certstorename"].ToString();
+
+            //2025-Apr-25 Vision added begin
+            if (!System.Configuration.ConfigurationManager.AppSettings.AllKeys.Contains("MobileServerURLOrIP"))
+            {
+                config.AppSettings.Settings.Add("MobileServerURLOrIP", "127.0.0.1");
+                config.Save();
+                System.Configuration.ConfigurationManager.RefreshSection("appSettings");
+            }
+
+            IPAddress.TryParse(System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"], out MOBILE_SERVER_IP);
+            if (MOBILE_SERVER_IP == null)
+            {
+                try
+                {
+                    MOBILE_SERVER_IP = Dns.GetHostAddresses(System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"])[0];
+                }
+                catch (Exception ex)
+                {
+                    Log.LogEnter($"Error in  Dns.GetHostAddresses({System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"]})" +
+                        $" {ex.ToString()}", 
+                        string.Empty, string.Empty, _log);
+                    Console.WriteLine($"Error in  Dns.GetHostAddresses({System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"]})" +
+                        $" {ex.ToString()}");
+                }
+            }
+            // 2025-Apr-25 Vision added end
+
 
             //2024-Oct-28 Vision addded begin
             if (!System.Text.RegularExpressions.Regex.IsMatch(certificate, "^[a-zA-Z]\\:([a]|[^a]){1,1000}", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
@@ -120,6 +148,12 @@ namespace OTFListener
         {
             HttpListenerContext context = (HttpListenerContext)obj;
             HttpListenerRequest request = context.Request;
+            if (request.RemoteEndPoint.Address != MOBILE_SERVER_IP)
+            {
+                Log.LogEnter($"The request is from a wrong IPAddress {request.RemoteEndPoint.Address}. " +
+                             $"Here we reject to handle the incomeing message from that IP", "Error", string.Empty, _log);
+                return;
+            }
             HttpListenerResponse response = context.Response;
             string _receivedmsg = string.Empty;
             XElement _xelement = null;
