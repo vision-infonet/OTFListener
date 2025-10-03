@@ -50,7 +50,7 @@ namespace OTFListener
             //2025-Apr-25 Vision added begin
             if (!System.Configuration.ConfigurationManager.AppSettings.AllKeys.Contains("MobileServerURLOrIP"))
             {
-                config.AppSettings.Settings.Add("MobileServerURLOrIP", "127.0.0.1");
+                config.AppSettings.Settings.Add("MobileServerURLOrIP", "172.25.228.192");
                 config.Save();
                 System.Configuration.ConfigurationManager.RefreshSection("appSettings");
             }
