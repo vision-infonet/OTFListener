@@ -34,7 +34,8 @@ namespace OTFListener
         internal static bool runningasservice = false;
         Thread receiving_thread = null;//2023-Feb-01 Vision
         private static string CERT_STORE_NAME = "Root";
-        private IPAddress MOBILE_SERVER_IP = null;//2025-Apr-25 Vision added 
+        //private IPAddress MOBILE_SERVER_IP = null;//2025-Apr-25 Vision added 
+        private string MobileServerIPWest= string.Empty, MobileServerIPEast = string.Empty;//2025-Oct-22 Vision added
 
         public MobilePaymentProcessor()
         {
@@ -47,31 +48,52 @@ namespace OTFListener
             }
             CERT_STORE_NAME = System.Configuration.ConfigurationManager.AppSettings["certstorename"].ToString();
 
-            //2025-Apr-25 Vision added begin
-            if (!System.Configuration.ConfigurationManager.AppSettings.AllKeys.Contains("MobileServerURLOrIP"))
+
+            //2025-Oct-22 Vision commented out begin
+            ////2025-Apr-25 Vision added begin
+            //if (!System.Configuration.ConfigurationManager.AppSettings.AllKeys.Contains("MobileServerURLOrIP"))
+            //{
+            //    config.AppSettings.Settings.Add("MobileServerURLOrIP", "172.25.228.192");
+            //    config.Save();
+            //    System.Configuration.ConfigurationManager.RefreshSection("appSettings");
+            //}
+
+            //IPAddress.TryParse(System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"], out MOBILE_SERVER_IP);
+            //if (MOBILE_SERVER_IP == null)
+            //{
+            //    try
+            //    {
+            //        MOBILE_SERVER_IP = Dns.GetHostAddresses(System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"])[0];
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        Log.LogEnter($"Error in  Dns.GetHostAddresses({System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"]})" +
+            //            $" {ex.ToString()}", 
+            //            string.Empty, string.Empty, _log);
+            //        Console.WriteLine($"Error in  Dns.GetHostAddresses({System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"]})" +
+            //            $" {ex.ToString()}");
+            //    }
+            //}
+            //// 2025-Apr-25 Vision added end
+            //2025-Oct-22 Vision commented out end
+
+            //2025-Oct-22 Vision added begin
+            if (!System.Configuration.ConfigurationManager.AppSettings.AllKeys.Contains("MobileServerIPWest"))
             {
-                config.AppSettings.Settings.Add("MobileServerURLOrIP", "172.25.228.192");
+                config.AppSettings.Settings.Add("MobileServerIPWest", "172.26.38.0/23");
                 config.Save();
                 System.Configuration.ConfigurationManager.RefreshSection("appSettings");
             }
-
-            IPAddress.TryParse(System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"], out MOBILE_SERVER_IP);
-            if (MOBILE_SERVER_IP == null)
+            if (!System.Configuration.ConfigurationManager.AppSettings.AllKeys.Contains("MobileServerIPEast"))
             {
-                try
-                {
-                    MOBILE_SERVER_IP = Dns.GetHostAddresses(System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"])[0];
-                }
-                catch (Exception ex)
-                {
-                    Log.LogEnter($"Error in  Dns.GetHostAddresses({System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"]})" +
-                        $" {ex.ToString()}", 
-                        string.Empty, string.Empty, _log);
-                    Console.WriteLine($"Error in  Dns.GetHostAddresses({System.Configuration.ConfigurationManager.AppSettings["MobileServerURLOrIP"]})" +
-                        $" {ex.ToString()}");
-                }
+                config.AppSettings.Settings.Add("MobileServerIPEast", "172.29.102.128/25");
+                config.Save();
+                System.Configuration.ConfigurationManager.RefreshSection("appSettings");
             }
-            // 2025-Apr-25 Vision added end
+            MobileServerIPWest = System.Configuration.ConfigurationManager.AppSettings["MobileServerIPWest"];
+            MobileServerIPEast = System.Configuration.ConfigurationManager.AppSettings["MobileServerIPEast"];
+            //2025-Apr-25 Vision added end
+
 
 
             //2024-Oct-28 Vision addded begin
@@ -89,6 +111,7 @@ namespace OTFListener
             SetupSsl_Infonet(OTF_Listener_Port);
             //SetupSsl_Infonet(OTF_Listener_Port, ref cert2);
             //SetupSsl(LocalPort, ref cert2);
+            Thread.Sleep(1000);
             InitialHttpsListener();
             ThreadPool.QueueUserWorkItem(new WaitCallback(ConnectToOPT));
             
@@ -148,7 +171,8 @@ namespace OTFListener
         {
             HttpListenerContext context = (HttpListenerContext)obj;
             HttpListenerRequest request = context.Request;
-            if (request.RemoteEndPoint.Address != MOBILE_SERVER_IP)
+            //if (request.RemoteEndPoint.Address != MOBILE_SERVER_IP)
+            if(!ValidateRemoteIp(request.RemoteEndPoint.Address))
             {
                 Log.LogEnter($"The request is from a wrong IPAddress {request.RemoteEndPoint.Address}. " +
                              $"Here we reject to handle the incomeing message from that IP", "Error", string.Empty, _log);
@@ -412,6 +436,64 @@ namespace OTFListener
             foreach (char c in str)
                 bb[i++] = (byte)c;
             return bb;
+        }
+
+        private bool ValidateRemoteIp(IPAddress remoteIp)
+        {
+            bool isValid = false;
+            try
+            {
+                if (IsInSubnet(remoteIp, MobileServerIPWest) || IsInSubnet(remoteIp, MobileServerIPEast))
+                {
+                    isValid = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.LogEnter($"Error in ValidateRemoteIp: {ex.ToString()}", "Error", string.Empty, _log);
+            }
+            return isValid;
+        }
+
+        // Add this method to the MobilePaymentProcessor class to fix CS0103 errors
+        private static bool IsInSubnet(IPAddress address, string cidr)
+        {
+            if (string.IsNullOrWhiteSpace(cidr))
+                return false;
+
+            var parts = cidr.Split('/');
+            if (parts.Length != 2)
+                return false;
+
+            if (!IPAddress.TryParse(parts[0], out var subnetAddress))
+                return false;
+
+            if (!int.TryParse(parts[1], out var prefixLength))
+                return false;
+
+            var addressBytes = address.GetAddressBytes();
+            var subnetBytes = subnetAddress.GetAddressBytes();
+
+            if (addressBytes.Length != subnetBytes.Length)
+                return false;
+
+            int byteCount = prefixLength / 8;
+            int bitCount = prefixLength % 8;
+
+            for (int i = 0; i < byteCount; i++)
+            {
+                if (addressBytes[i] != subnetBytes[i])
+                    return false;
+            }
+
+            if (bitCount > 0)
+            {
+                int mask = (byte)~(0xFF >> bitCount);
+                if ((addressBytes[byteCount] & mask) != (subnetBytes[byteCount] & mask))
+                    return false;
+            }
+
+            return true;
         }
     }
 }
