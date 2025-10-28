@@ -172,7 +172,7 @@ namespace OTFListener
             HttpListenerContext context = (HttpListenerContext)obj;
             HttpListenerRequest request = context.Request;
             //if (request.RemoteEndPoint.Address != MOBILE_SERVER_IP)
-            if(!ValidateRemoteIp(request.RemoteEndPoint.Address))
+            if(!ValidateRemoteIp(request.RemoteEndPoint.Address))//2025-Apr-24 Vision modified
             {
                 Log.LogEnter($"The request is from a wrong IPAddress {request.RemoteEndPoint.Address}. " +
                              $"Here we reject to handle the incomeing message from that IP", "Error", string.Empty, _log);
@@ -455,7 +455,13 @@ namespace OTFListener
             return isValid;
         }
 
-        // Add this method to the MobilePaymentProcessor class to fix CS0103 errors
+
+        /// <summary>
+        /// 2025-Oct-24 Vision added
+        /// </summary>
+        /// <param name="address"></param>
+        /// <param name="cidr">The number of bits mask as valid network</param>
+        /// <returns></returns>
         private static bool IsInSubnet(IPAddress address, string cidr)
         {
             if (string.IsNullOrWhiteSpace(cidr))
