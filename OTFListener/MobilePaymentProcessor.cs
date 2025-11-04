@@ -175,7 +175,7 @@ namespace OTFListener
             if(!ValidateRemoteIp(request.RemoteEndPoint.Address))//2025-Apr-24 Vision modified
             {
                 Log.LogEnter($"The request is from a wrong IPAddress {request.RemoteEndPoint.Address}. " +
-                             $"Here we reject to handle the incomeing message from that IP", "Error", string.Empty, _log);
+                             $"Here we reject to handle the incoming message from that IP", "Error", string.Empty, _log);
                 return;
             }
             HttpListenerResponse response = context.Response;
